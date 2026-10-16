@@ -83,7 +83,7 @@ details li.on{color:var(--cinnabar)}
 .ai-out:empty{display:none}
 .ai-out.wait{color:var(--muted)}
 .ai-note{font-size:.85rem;color:var(--muted);margin:8px 0 0}
-.go.small{font-size:1rem;padding:8px 20px;letter-spacing:.1em}
+.go.small{display:inline-block;text-decoration:none;font-size:1rem;padding:8px 20px;letter-spacing:.1em}
 .go:disabled{opacity:.5;cursor:default}
 @media (max-width:420px){h1{font-size:2rem}.gua .nm{font-size:1.35rem}.lines{width:min(68px,100%)}}
 @media (prefers-reduced-motion:no-preference){#result{transition:opacity .25s}}
@@ -382,8 +382,14 @@ function render(R){
     <div class="block"><h3>變卦　${R.bian.full}</h3><p class="jing">${R.bian.name}：${R.bian.ci}</p></div>
   </section>
 
-  <section class="panel ai" aria-label="Claude 解卦"${sampleFn?'':' hidden'}>
+  <section class="panel ai" aria-label="Claude 解卦">
     <h2>Claude 解卦</h2>
+    <div class="ai-link">
+      <p style="margin:0 0 12px;color:var(--muted);font-size:.9rem">按下後會打開 Claude，並帶入整理好的卦象和解卦指示，送出就能看到白話解讀。同時也會複製到剪貼簿，如果 Claude 開啟後沒有帶入文字，直接貼上即可。需要登入 Claude 帳號。</p>
+      <div class="ai-btns"><a class="go small" id="openClaude" href="https://claude.ai/new" target="_blank" rel="noopener">到 Claude 解卦</a></div>
+      <p class="ai-note" id="linkNote" hidden></p>
+    </div>
+    <div class="ai-inline" hidden>
     <p style="margin:0 0 12px;color:var(--muted);font-size:.9rem">依體用生剋、旺衰、互卦、變卦與動爻，針對你問的事斷卦，好的壞的都會說。會用到你自己的 Claude 用量，第一次使用會先詢問是否允許。</p>
     <div class="ai-btns">
       <button class="go small" type="button" id="askAi">請 Claude 解卦</button>
@@ -392,6 +398,7 @@ function render(R){
     </div>
     <div class="ai-out" id="aiOut" aria-live="polite"></div>
     <p class="ai-note" id="aiNote" hidden></p>
+    </div>
   </section>
 
   <section class="panel" aria-label="複製">
@@ -404,6 +411,12 @@ function render(R){
   $('result').innerHTML=html;
   const txt=copyText(R,mvLabel,yaoText);
   aiPrompt=buildPrompt(R,txt);
+  const oc=$('openClaude');
+  oc.href='https://claude.ai/new?q='+encodeURIComponent(aiPrompt);
+  oc.onclick=()=>{
+    try{navigator.clipboard.writeText(aiPrompt).then(()=>{$('linkNote').textContent='已複製解卦內容，Claude 沒帶入文字的話請直接貼上。';$('linkNote').hidden=false;}).catch(()=>{});}catch(e){}
+  };
+  applyAiMode();
   $('askAi').onclick=()=>runAi(false);
   $('reAi').onclick=()=>runAi(true);
   $('stopAi').onclick=()=>{if(aiCtl)aiCtl.abort();};
@@ -443,8 +456,13 @@ function copyText(R,mvLabel,yaoText){
 let sampleFn=null, aiCtl=null, aiPrompt='';
 (async()=>{
   try{ if(window.claude&&typeof window.claude.use==='function') sampleFn=await window.claude.use('sample'); }catch(e){ sampleFn=null; }
-  if(sampleFn) document.querySelectorAll('.ai').forEach(el=>{el.hidden=false;});
+  applyAiMode();
 })();
+function applyAiMode(){
+  const inline=!!sampleFn;
+  document.querySelectorAll('.ai-inline').forEach(el=>{el.hidden=!inline;});
+  document.querySelectorAll('.ai-link').forEach(el=>{el.hidden=inline;});
+}
 
 function buildPrompt(R,txt){
   return `你是精通梅花易數與《周易》的易學老師。以下是一次梅花易數數字起卦的完整卦象，請用繁體中文替問卦者斷卦。問卦者是不懂易經的一般人。
