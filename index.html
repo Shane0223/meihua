@@ -95,6 +95,7 @@ details li.on{color:var(--cinnabar)}
   <header>
     <h1>梅花數占</h1>
     <p class="sub">梅花易數・數字起卦。算出本卦、互卦、變卦，依體用五行與月令旺衰判斷吉凶，附《周易》卦辭與爻辭。</p>
+    <p class="sub" style="font-size:.82rem;margin-top:4px">占卜結果僅供參考，不構成任何投資、醫療或法律建議。<a href="#disclaimer" style="color:var(--jade)">使用須知</a></p>
   </header>
 
   <section class="panel" aria-label="起卦">
@@ -131,6 +132,15 @@ details li.on{color:var(--cinnabar)}
     <p>餘數為 0 時，卦取 8（坤），爻取 6（上爻）。先天八卦數：乾一、兌二、離三、震四、巽五、坎六、艮七、坤八。時辰數：子一、丑二，依序至亥十二。</p>
     <p><b>體用</b>：動爻所在的經卦為用，另一經卦為體。互卦看過程，變卦看結果。</p>
     <p><b>月令</b>依節氣交接日推算（各年可能差一天），節氣交接當天占卜請自行核對。</p>
+  </section>
+
+  <section class="panel foot" id="disclaimer" aria-label="使用須知與免責聲明">
+    <h2>使用須知與免責聲明</h2>
+    <p><b>僅供參考</b>：本工具依傳統梅花易數規則計算卦象，內容屬於文化、娛樂與自我反思用途。卦象與實際結果之間的關聯沒有科學證實，請勿作為決策的唯一依據。</p>
+    <p><b>不構成專業建議</b>：任何投資理財、醫療健康、法律、升學就業等重要決定，請以實際資料為準，並諮詢合格的專業人士。使用者依本工具內容所做的決定與產生的損益，由使用者自行負責。</p>
+    <p><b>AI 解讀可能有誤</b>：「Claude 解卦」由 AI 自動產生，可能出現錯誤、誤讀或前後不一致的說法，內容不代表任何老師或專家的個人斷語。</p>
+    <p><b>同一件事不宜反覆占問</b>：依傳統「不疑不占、不動不占」，同一件事以第一卦為準，反覆起卦只會讓判斷更混亂。如果發現自己因為占卜結果感到焦慮或難以做決定，建議先停下來，和信任的人聊聊。</p>
+    <p><b>資料與隱私</b>：起卦計算都在你自己的手機或電腦上完成，輸入的數字與問題不會上傳到本網站。使用 Claude 解卦時，卦象與所問之事會送到你自己的 Claude 帳號處理，請避免填入身分證字號、帳號密碼等個人敏感資料。</p>
   </section>
 </div>
 
@@ -385,12 +395,12 @@ function render(R){
   <section class="panel ai" aria-label="Claude 解卦">
     <h2>Claude 解卦</h2>
     <div class="ai-link">
-      <p style="margin:0 0 12px;color:var(--muted);font-size:.9rem">按下後會打開 Claude，並帶入整理好的卦象和解卦指示，送出就能看到白話解讀。同時也會複製到剪貼簿，如果 Claude 開啟後沒有帶入文字，直接貼上即可。需要登入 Claude 帳號。</p>
+      <p style="margin:0 0 12px;color:var(--muted);font-size:.9rem">按下後會打開 Claude，並帶入整理好的卦象和解卦指示，送出就能看到白話解讀。同時也會複製到剪貼簿，如果 Claude 開啟後沒有帶入文字，直接貼上即可。需要登入 Claude 帳號。<br>在 Claude 裡開啟這個頁面時，會改成直接在下方顯示解卦結果；自己架的網頁版（例如 GitHub）只能用這個按鈕。</p>
       <div class="ai-btns"><a class="go small" id="openClaude" href="https://claude.ai/new" target="_blank" rel="noopener">到 Claude 解卦</a></div>
       <p class="ai-note" id="linkNote" hidden></p>
     </div>
     <div class="ai-inline" hidden>
-    <p style="margin:0 0 12px;color:var(--muted);font-size:.9rem">依體用生剋、旺衰、互卦、變卦與動爻，針對你問的事斷卦，好的壞的都會說。會用到你自己的 Claude 用量，第一次使用會先詢問是否允許。</p>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:.9rem">以體用生剋的分級為準直接斷，凶就說凶，先講不利再講有利，並給應期。會用到你自己的 Claude 用量，第一次使用會先詢問是否允許。</p>
     <div class="ai-btns">
       <button class="go small" type="button" id="askAi">請 Claude 解卦</button>
       <button class="ghost" type="button" id="stopAi" hidden>停止</button>
@@ -398,6 +408,7 @@ function render(R){
     </div>
     <div class="ai-out" id="aiOut" aria-live="polite"></div>
     <p class="ai-note" id="aiNote" hidden></p>
+    <p class="ai-note">AI 解讀僅供參考，可能有誤，請勿作為重大決定的唯一依據。</p>
     </div>
   </section>
 
@@ -426,16 +437,30 @@ function render(R){
   };
 }
 
+// 依體用規則給參考分級：起始為主、結果次之、過程再次，加上旺衰
+const REL_PT={生體:2,比和:1,體剋:0.5,體生:-1,剋體:-2};
+const WS_PT={旺:0.5,相:0.5,休:0,囚:-0.5,死:-0.5};
+function grade(R){
+  let s=REL_PT[R.rMain.k]+REL_PT[R.rBian.k]*1.5+(REL_PT[R.rHu1.k]+REL_PT[R.rHu2.k])*0.5+WS_PT[R.wsTi];
+  if(R.rMain.k==='剋體'&&['旺','相'].includes(R.wsYong)) s-=0.5; // 用卦有力來剋，更凶
+  if(R.rMain.k==='生體'&&['旺','相'].includes(R.wsYong)) s+=0.5; // 用卦有力來生，更吉
+  const label=s>=2.5?'吉':s>=1?'小吉':s>-1?'平':s>-3.5?'小凶':'凶';
+  const cls=s>=1?'good':s>-1?'mid':'bad';
+  return {score:Math.round(s*10)/10,label,cls};
+}
 function summary(R,tiStrong){
+  const G=grade(R);
   const goodCount=[R.rMain,R.rBian].filter(r=>r.cls==='good').length;
   const badCount=[R.rMain,R.rBian].filter(r=>r.cls==='bad').length;
-  let s='';
-  if(goodCount===2) s='一開始和最後都對你有利，整體偏好。';
-  else if(badCount===2) s='一開始和最後都對你不利，整體偏差，做法要保守。';
-  else if(R.rBian.cls==='good') s='一開始不一定順，但最後會轉好，先苦後甜。';
-  else if(R.rBian.cls==='bad') s='一開始還可以，但後面會變差，要留意後段的變化。';
-  else s='好壞參半，成敗看你自己肯不肯出力、時機抓得準不準。';
-  s+=tiStrong?'這個月你本身力量足，遇到阻力也撐得住。':'這個月你本身力量偏弱，遇到阻力要更保守。';
+  let s=`<span class="pill ${G.cls}">整體 ${G.label}</span>`;
+  if(goodCount===2) s+='一開始和最後都對你有利。';
+  else if(badCount===2) s+='一開始和最後都對你不利，不宜硬做。';
+  else if(R.rBian.cls==='good'&&R.rMain.cls==='bad') s+='一開始受阻，最後轉順，先難後易。';
+  else if(R.rBian.cls==='good') s+='最後的走向對你有利。';
+  else if(R.rBian.cls==='bad'&&R.rMain.cls==='good') s+='開頭順，後段轉差，要防虎頭蛇尾。';
+  else if(R.rBian.cls==='bad') s+='最後的走向對你不利。';
+  else s+='起始與結果都是你得出力才有的局面，成果有限。';
+  s+=tiStrong?'這個月你本身有力。':'這個月你本身力弱。';
   return s;
 }
 function copyText(R,mvLabel,yaoText){
@@ -450,7 +475,9 @@ function copyText(R,mvLabel,yaoText){
     `體用：${R.rMain.k}；互卦 ${R.huUp}${TRI[R.huUp].el}${R.rHu1.k}、${R.huLo}${TRI[R.huLo].el}${R.rHu2.k}；變卦用位 ${R.bianYong}${TRI[R.bianYong].el}${R.rBian.k}`,
     `卦辭：${R.ben.ci}`,
     `動爻爻辭：${yaoText}`,
-    `變卦卦辭：${R.bian.ci}`
+    `變卦卦辭：${R.bian.ci}`,
+    `參考分級：${grade(R).label}`,
+    `（占卜結果僅供參考，不構成投資、醫療或法律建議）`
   ].join('\n');
 }
 let sampleFn=null, aiCtl=null, aiPrompt='';
@@ -465,26 +492,31 @@ function applyAiMode(){
 }
 
 function buildPrompt(R,txt){
-  return `你是精通梅花易數與《周易》的易學老師。以下是一次梅花易數數字起卦的完整卦象，請用繁體中文替問卦者斷卦。問卦者是不懂易經的一般人。
+  const G=grade(R);
+  return `你是斷卦直接、不粉飾的梅花易數老師。以下是一次數字起卦的完整卦象，請用繁體中文斷卦。
 
 ${txt}
 
-斷卦要求：
-1. 以體用五行生剋為主、月令旺衰為輔，依序看起始（本卦體用）、過程（互卦）、結果（變卦），最後才用動爻爻辭與卦辭補充細節。體卦代表問卦者自己，用卦代表所問之事。
-2. ${R.q?`緊扣所問之事「${R.q}」來斷，把卦象翻譯成這件事的具體情境。`:'問卦者沒有寫明所問之事，請給一般性的吉凶與處事建議。'}
-3. 有利與不利的徵兆都要直說，不要只講好話；不利之處也要講清楚會怎麼表現、要防什麼。
-4. 給出明確的總體判斷（例如：可行、可行但要注意某事、不宜）和具體建議。
-5. 若問的是投資理財，在最後用一句話提醒卦象只是參考，要搭配基本面判斷。
-6. 用一般人聽得懂的日常白話，像在跟朋友解釋。易經術語（體卦、用卦、生剋、旺衰、互卦、變卦、動爻）第一次出現時，用一句白話說明它代表什麼，例如「體卦代表你自己」。卦辭、爻辭的古文要先翻成白話，再說它對這件事的意思。多用生活中的比喻，少用文言。
-7. 每一段先講結論，再講理由。
-8. 用純文字，不要使用 Markdown 符號（不要用 #、*、表格）。用以下段落標題，每個標題獨立一行：
-【一句話結論】
-【你和這件事的關係】
-【過程中會遇到什麼】
-【最後會怎樣】
-【古書怎麼說】
-【給你的建議】
-全文約 500 到 800 字。`;
+程式依體用規則算出的參考分級：${G.label}（分數 ${G.score}。起始${R.rMain.k}、過程${R.rHu1.k}與${R.rHu2.k}、結果${R.rBian.k}、體卦${R.wsTi}、用卦${R.wsYong}）
+
+斷卦規則：
+1. 以體用五行生剋定吉凶：用生體大吉，比和吉，體剋用小吉（可成但費力、得分有限），體生用為耗損，用剋體為凶。月令旺衰決定雙方力量大小。互卦看過程，變卦看結果。卦辭、爻辭只能補充細節，不能拿來推翻五行的判斷。
+2. 總體判斷以參考分級為準，最多只能上下調一級，並寫出調整的具體依據。分級是凶或小凶，就直說不成、難成、會受損或會被擋，不准用「只要努力就能成」「事在人為」「好好把握」把結論翻成好的。分級是平，就說清楚是成果有限或拖延，不要講成吉。
+3. 禁止任何卦都適用的空話，例如：保持積極、相信自己、只要努力、用心經營、順其自然、謹慎行事、多加留意。每一句判斷都要指得出是哪個卦、哪個五行關係推出來的。建議要是具體動作（做什麼、不做什麼、何時做、對誰怎麼說）。
+4. 用八卦類象把卦翻成這件事的具體畫面，只挑跟這件事有關的象：乾（頭、上司、長輩、剛硬、金錢大物）、兌（口舌、說話、毀折、喜悅、少女）、離（文書、眼睛、明顯、中女）、震（動、驚、聲響、長男）、巽（進退不定、風聲傳話、商人、草木、長女）、坎（險、陷、暗中、中男）、艮（止、阻擋、門、少男）、坤（眾人、遲緩、母親、田土）。
+5. 所問是是非題（可不可行、會不會成、要不要做）時，第一句直接回答是或否，再補程度與條件。
+6. 給應期：依體卦五行，指出生扶體卦的月份或日子（寫地支和大約國曆日期，起卦日是 ${R.Y}/${R.M}/${R.D}），以及要避開的時段。
+7. ${R.q?`緊扣所問之事「${R.q}」來斷，把卦象翻成這件事的具體情境。`:'問卦者沒有寫明所問之事，給一般性的吉凶與處事方向。'}
+8. 若問的是投資理財，最後用一句話提醒卦象只是參考。
+9. 用日常白話，古文先翻成白話再說意思。術語第一次出現時用幾個字說明（例如「體卦，就是你自己」）。
+
+輸出用純文字，不要 Markdown 符號（不要 #、*、表格）。依序用以下標題，每個標題獨立一行：
+【結論】一到兩句，直接回答
+【不利的地方】先講，寫出會怎麼表現、要防什麼
+【有利的地方】沒有就寫「沒有明顯有利的地方」
+【怎麼做】具體動作；凶卦就建議不做、延後或換方法
+【應期】
+全文約 400 到 700 字。`;
 }
 
 const AI_ERR={
@@ -503,7 +535,7 @@ async function runAi(fresh){
   const out=$('aiOut'), note=$('aiNote'), ask=$('askAi'), stop=$('stopAi'), re=$('reAi');
   out.textContent='Claude 正在看卦……'; out.classList.add('wait');
   note.hidden=true; ask.disabled=true; re.hidden=true; stop.hidden=false;
-  const opts={signal:ctl.signal,onText:({text})=>{out.classList.remove('wait');out.textContent=text;}};
+  const opts={signal:ctl.signal,modelTier:'complex',onText:({text})=>{out.classList.remove('wait');out.textContent=text;}};
   if(fresh) opts.cache=false;
   try{
     const {truncated}=await sampleFn(aiPrompt,opts);
